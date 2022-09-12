@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-"""The setup script."""
-
 import io
 from os import path as op
 from setuptools import setup, find_packages
@@ -29,8 +27,10 @@ setup(
     author_email='husam.abdulnabi@gmail.com',
     python_requires='>=3.7',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Science/Research',
+        'Intended Audience :: Education', 
+        'Intended Audience :: Developers', 
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
