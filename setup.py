@@ -34,6 +34,6 @@ setup(
     name='poseidon-chisel',
     packages=['poseidon-chisel'],
     url='https://github.com/Husam94/poseidon-chisel',
-    version='0.0.4',
+    version='0.0.5',
     zip_safe=False
 )
