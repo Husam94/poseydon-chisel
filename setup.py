@@ -20,7 +20,7 @@ setup(
         'Topic :: Scientific/Engineering' 
     ],
     description="Chisel package part of the Poseidon suite",
-    install_requires=['numpy' , 'pandas', 'random', 'math', 'pickle', 'pysam', 
+    install_requires=['numpy' , 'pandas', 'math', 'pickle', 'pysam', 
                       'pyBigWig', 'itertools', 'biopython', 'joblib', 'matplotlib', 
                       'denseweight'],
     license="MIT license",
