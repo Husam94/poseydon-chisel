@@ -27,7 +27,7 @@ setup(
     include_package_data=True,
     keywords='poseidon_chisel',
     name='poseidon-chisel',
-    packages=['poseidon_chisel']
+    packages=['poseidon-chisel']
     url='https://github.com/Husam94/poseidon-chisel',
     version='0.0.2',
     zip_safe=False
