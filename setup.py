@@ -21,7 +21,7 @@ setup(
     ],
     description="Chisel package part of the Poseidon suite",
     install_requires=['numpy' , 'pandas==1.3.5', 'pysam', 
-                      'pyBigWig', 'biopython', 'joblib', 'matplotlib', 
+                      'pyBigWig==0.3.18', 'biopython', 'joblib', 'matplotlib', 
                       'denseweight'],
     license="MIT license",
     include_package_data=True,
