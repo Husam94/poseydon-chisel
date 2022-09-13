@@ -22,7 +22,7 @@ setup(
     description="Chisel package part of the Poseidon suite",
     install_requires=['numpy' , 'pandas', 'random', 'math', 'pickle', 'pysam', 
                       'pyBigWig', 'itertools', 'biopython', 'joblib', 'matplotlib', 
-                      'denseweight']
+                      'denseweight'],
     license="MIT license",
     include_package_data=True,
     keywords='poseidon_chisel',
