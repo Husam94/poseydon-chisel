@@ -23,7 +23,7 @@ setup(
     install_requires=['numpy>=1.20.0' , 
                       'pandas>=1.3.0', 
                       'pysam>=0.18.0', 
-                      'pyBigWig>=0.3.17', 
+                      'pybigwig>=0.3.17', 
                       'biopython>=1.79', 
                       'joblib>=1.1.0', 
                       'matplotlib>=3.5.0', 
