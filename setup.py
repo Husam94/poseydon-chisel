@@ -34,6 +34,6 @@ setup(
     name='poseydon-chisel',
     packages=['poseydon-chisel'],
     url='https://github.com/Husam94/poseydon-chisel',
-    version='0.0.5',
+    version='0.0.1',
     zip_safe=False
 )
