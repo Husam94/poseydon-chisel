@@ -19,7 +19,7 @@ setup(
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Scientific/Engineering' 
     ],
-    description="Chisel package part of the Poseidon suite",
+    description="Chisel package part of the Poseydon suite",
     install_requires=['numpy>=1.20.0' , 
                       'pandas>=1.3.0', 
                       'pysam>=0.18.0', 
@@ -30,10 +30,10 @@ setup(
                       'denseweight==0.1.2'],
     license="MIT license",
     include_package_data=True,
-    keywords='poseidon_chisel',
-    name='poseidon-chisel',
-    packages=['poseidon-chisel'],
-    url='https://github.com/Husam94/poseidon-chisel',
+    keywords='poseydon_chisel',
+    name='poseydon-chisel',
+    packages=['poseydon-chisel'],
+    url='https://github.com/Husam94/poseydon-chisel',
     version='0.0.5',
     zip_safe=False
 )
