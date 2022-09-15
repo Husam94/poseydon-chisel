@@ -6,6 +6,10 @@
 ```
 pip install poseydon-chisel
 ```
+#### Usage
+```
+from poseydon_chisel import * 
+```
 
 Free software: MIT license
   
