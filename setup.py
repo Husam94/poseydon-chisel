@@ -32,7 +32,7 @@ setup(
     include_package_data=True,
     keywords='poseydon_chisel',
     name='poseydon-chisel',
-    packages=['poseydon-chisel'],
+    packages=['poseydon_chisel'],
     url='https://github.com/Husam94/poseydon-chisel',
     version='0.0.1',
     zip_safe=False
