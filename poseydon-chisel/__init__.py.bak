@@ -25,15 +25,13 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from denseweight import DenseWeight
 
 
-def Fasta2Seqs(fileloc, idents = False, first = None): 
-    
+def Fasta2Seqs(fileloc, idents = False): 
     seqs = []
     ids = []
     with open(fileloc) as fasta_file:
         for identifier, seq in SimpleFastaParser(fasta_file):
             seqs.append(seq.upper())
             ids.append(identifier)
-            if first is not None and len(seqs) >= first: break
         
     return seqs, ids if idents == True else seqs
 
@@ -144,26 +142,12 @@ def Bg2Current(fileloc, BS_sizes, BS_ids, select_BS_ids = None, newreso = 20, re
 def Currents2Current(SigCurrents): 
     return [np.hstack([SigCurrents[T][z] for T in range(len(SigCurrents))]) for z in range(len(SigCurrents[0]))]
 
-def CurrentMerger(SigCurrent, mode = np.mean, dtype = None):
-    
-    ms = []
-    for z in SigCurrent: 
-        m = mode(z, axis = 1).reshape(-1,1)
-        if dtype is not None: m = m.astype(dtype)
-        ms.append(m) 
-    
-    return ms
+def CurrentMerger(SigCurrent, mode = np.mean): 
+    return [mode(z, axis = 1).reshape(-1,1) for z in SigCurrent] 
 
-def CurrentModifier(SigCurrent, modifier, mode = np.multiply, dtype = None): 
+def CurrentModifier(SigCurrent, modifier, mode = np.multiply): 
     #modifier is a list, should match len of SigCurrent. Could be a single value ex. [-1] 
-    
-    mos = []
-    for z,m in zip(SigCurrent, modifier):
-        mo = mode(z, m)
-        if dtype is not None: mo = mo.astype(dtype)
-        mos.append(mo)
-    
-    return mos
+    return [mode(z, m) for z,m in zip(SigCurrent, modifier)]
 
 def CurrentTransformer(SigCurrent, minmax = (0, None), standardize = False, dtype = None): 
     
@@ -186,9 +170,6 @@ def CurrentTransformer(SigCurrent, minmax = (0, None), standardize = False, dtyp
         
         
     return Currents2Current(AT)
-
-def CurrentDtype(Current, dtype): 
-    return [z.astype(dtype) for z in Current]
 
 def CurrentInterpolator(SigCurrent, reso, window = None, threshold = 0, threshsign = np.greater): 
     
@@ -213,7 +194,7 @@ def CurrentInterpolator(SigCurrent, reso, window = None, threshold = 0, threshsi
             
             nT.append((zI*m).reshape(-1,1))
             
-        if dtype is not None: nt = CurrentDtype(nT, dtype) 
+        if dtype is not None: nt = [g.astype(dtype) for g in nt]
         AT.append(nT) 
         
     return Currents2Current(AT)  
@@ -229,7 +210,7 @@ def LowerResCurrent(SigCurrent, reso, newreso, resomode = np.mean, dtype = None)
             newlength = resoratio * (len(z)//resoratio)
             nT.append(resomode(z[:newlength].reshape(-1, resoratio), axis = 1).reshape(-1,1))
         
-        if dtype is not None: nt = CurrentDtype(nT, dtype) 
+        if dtype is not None: nt = [g.astype(dtype) for g in nt]
         AT.append(nT)
     
     return Currents2Current(AT)
@@ -243,8 +224,7 @@ def CurrentExpander(SigCurrent, reso, BS_size, BS_ids, select_BS_ids = None, fil
         ind = BS_ids.index(z)
         lg = BS_size[ind]
         repd = np.repeat(SigCurrent[iz].reshape(-1), reso)
-        dy = SigCurrent[iz].dtype.type
-        nT.append(np.append(repd, np.repeat(filler,lg-len(repd)).astype(dy)).reshape(-1,1))
+        nT.append(np.append(repd, np.repeat(filler,lg-len(repd))).reshape(-1,1))
         
     return nT
 
@@ -261,12 +241,10 @@ def CurrentWindower(SigCurrent, reso = 1, mode = np.mean, window = None, center 
         lz = len(z) 
         r = np.lib.stride_tricks.sliding_window_view(z, (window, z.shape[1])) 
         t = mode(mode(r, -1),-1).reshape(-1)
+        if center is not None: t = np.concatenate([np.repeat(center, window // 2), t])
+        if extend is not None: t = np.concatenate([t, np.repeat(extend, lz - len(t))])
+        
         if dtype is not None: t = t.astype(dtype)
-        dy = t.dtype.type
-        
-        if center is not None: t = np.concatenate([np.repeat(center, window // 2).astype(dy), t])
-        if extend is not None: t = np.concatenate([t, np.repeat(extend, lz - len(t)).astype(dy)])
-        
         TM.append(t.reshape(-1,1))
     
     return TM 
@@ -285,12 +263,12 @@ def CurrentPadder(SigCurrent, reso = 1, pad = 10, shift = 0, value = 1, base = 0
     TB = []
     for z in SigCurrent: 
         lz = len(z)
-        m = np.repeat(base, lz) if dtype is None else np.repeat(base, lz).astype(dtype)
+        m = np.repeat(base, lz)
         v = np.where(z == value)[0]+shift
         pdx = np.unique(np.concatenate([np.arange(w - pad, w + pad) for w in (np.where(z == value)[0]+shift)]))
         pdx = pdx[pdx<lz]
         m[pdx] = value 
-        
+        if dtype is not None: m = m.astype(dtype)
         TB.append(m.reshape(-1,1))
     
     return TB
@@ -321,7 +299,7 @@ def CurrentFlagger(SigCurrent, reso = 5, window = 1000, stride = 50, flagmode = 
             
             for ix in idx: 
                 
-                g1, g2 = (np.zeros((window2, f)).astype(np.int8) for f in [j, 1])
+                g1, g2 = (np.zeros((window2, f)) for f in [j, 1])
                 ix2 = np.unravel_index(flagmode(y[ix:ix+window2], axis = 1), (window2, j))[0]
                 g1[ix2], g2[ix2] = 1, 1
                 
@@ -334,6 +312,7 @@ def CurrentFlagger(SigCurrent, reso = 5, window = 1000, stride = 50, flagmode = 
         ms.append(m)
     
     return [m*z for m,z in zip(ms, SigCurrent)]
+
 
 
 def Seqs2kmer(seqs, k = 6): 
@@ -365,9 +344,9 @@ def Seqs2OHE(seqs, expand_dim = None, customdict = None):
     OHEtotal = []
     for seq in seqs:
         seq = seq.upper()
-        OHEseq = np.array([OHEdict[nuc] for nuc in seq]).astype(np.float16)
+        OHEseq = [OHEdict[nuc] for nuc in seq]
         OHEtotal.append(OHEseq)
-    OHEtotal = np.squeeze(np.stack(OHEtotal))
+    OHEtotal = np.squeeze(np.array(OHEtotal, dtype='int8'))
     if expand_dim is not None: OHEtotal = np.expand_dims(OHEtotal, axis = expand_dim)
     
     return OHEtotal
@@ -425,9 +404,8 @@ def Seq2PWMScore(seq, PWM, pieces = None, RC = True, center = None, extend = Non
         scores.append(s1)
     
     scores = np.concatenate(scores)
-    dy = scores.dtype.type
-    if center is not None: scores = np.concatenate([np.repeat(center, lp // 2).astype(dy), scores])
-    if center is not None: scores = np.concatenate([scores, np.repeat(extend, ls - len(scores)).astype(dy)])
+    if center is not None: scores = np.concatenate([np.repeat(center, lp // 2), scores])
+    if center is not None: scores = np.concatenate([scores, np.repeat(extend, ls - len(scores))])
         
     return scores.reshape(-1,1)
 
@@ -451,9 +429,8 @@ def PWMScorer(PWM, BaseSeq, BS_ids, select_BS_ids = None, parrellel = None, piec
                 delayed_funcs = [delayed(Seq2PWMScore)(g[parts[i]:parts[i+1] + lp - 1], PWM, pieces = 1, dtype = dtype) for i in range(pieces)]
                 parallel_pool = Parallel(n_jobs=parrellel, backend = 'multiprocessing') #to make sure things are in order use multiprocessing
                 scores = np.vstack(parallel_pool(delayed_funcs))
-                dy = scores.dtype.type
-                if center is not None: scores = np.vstack([np.repeat(center, lp // 2).astype(dy).reshape(-1,1), scores])
-                if center is not None: scores = np.vstack([scores, np.repeat(extend, ls - len(scores)).astype(dy).reshape(-1,1)])
+                if center is not None: scores = np.vstack([np.repeat(center, lp // 2).reshape(-1,1), scores])
+                if center is not None: scores = np.vstack([scores, np.repeat(extend, ls - len(scores)).reshape(-1,1)])
                 PWMscores.append(scores) 
                 
             else: PWMscores.append(Seq2PWMScore(g,PWM,pieces = pieces, RC = RC, extend = extend, center = center, dtype = dtype))
@@ -701,8 +678,7 @@ def SeqCurrent2Pack(SeqCurrent, Markers, BS_ids, select_BS_ids = None, Vsize = 1
     
     return seqs
 
-def SigCurrent2Slice(SigCurrent, Marker, BS_ids, select_BS_ids = None, Vsize = 1000, reso = 5, newreso = None, resomode = np.mean, 
-                     exact = True, Vpad = 2, stranded = False, dtype = None): 
+def SigCurrent2Slice(SigCurrent, Marker, BS_ids, select_BS_ids = None, Vsize = 1000, reso = 5, newreso = None, resomode = np.mean, exact = True, Vpad = 2, stranded = False): 
     
     select_BS_ids = BS_ids if select_BS_ids is None else select_BS_ids
     ind = select_BS_ids.index(Marker[0])
@@ -712,8 +688,6 @@ def SigCurrent2Slice(SigCurrent, Marker, BS_ids, select_BS_ids = None, Vsize = 1
     r = Marker[1]
     j = Rounder(r,reso)
     c = j // reso
-    
-    if reso == 1: exact = False
     
     if exact == True:
         g = (Vpad*reso) + (r - j)
@@ -730,12 +704,9 @@ def SigCurrent2Slice(SigCurrent, Marker, BS_ids, select_BS_ids = None, Vsize = 1
         newlength = resoratio * ((V.shape[-1])//resoratio)
         V = resomode(V[:, :newlength].reshape(V.shape[0], -1, resoratio), axis = -1)
     
-    if dtype is not None: V = V.astype(dtype)
-    
     return V
 
-def SigCurrent2Pack(SigCurrent, Markers, BS_ids, select_BS_ids = None, Vsize = 1000, reso = 5, newreso = None, resomode = np.mean, 
-                    areas = None, exact = False, stranded = False, dtype = None): 
+def SigCurrent2Pack(SigCurrent, Markers, BS_ids, select_BS_ids = None, Vsize = 1000, reso = 5, newreso = None, resomode = np.mean, areas = None, exact = False, stranded = False): 
     #newreso needs to be divisiable by reso
     #areas is a list of areas to output instead of profile/single area
     
@@ -743,8 +714,7 @@ def SigCurrent2Pack(SigCurrent, Markers, BS_ids, select_BS_ids = None, Vsize = 1
     
     Pack = []
     for ir in Markers.index:
-        Pack.append(SigCurrent2Slice(SigCurrent, Markers.iloc[ir] , BS_ids, select_BS_ids, Vsize = Vsize, reso = reso, newreso = None, 
-                                     resomode = np.mean, exact = exact, Vpad = 2, stranded = stranded))
+        Pack.append(SigCurrent2Slice(SigCurrent, Markers.iloc[ir] , BS_ids, select_BS_ids, Vsize = Vsize, reso = reso, newreso = None, resomode = np.mean, exact = exact, Vpad = 2, stranded = stranded))
 
     Pack = np.stack(Pack, axis = 0)
     
@@ -762,21 +732,17 @@ def SigCurrent2Pack(SigCurrent, Markers, BS_ids, select_BS_ids = None, Vsize = 1
             ax.append(np.trapz(Pack[:, :, c-q:c+q], axis = -1))
         Pack = np.stack(ax, axis = -1)
     
-    if dtype is not None: Pack = Pack.astype(dtype)
-    
     return Pack
 
-def LowerResProfilePack(ProfilePack, reso, newreso, resomode = np.mean, dtype = None): 
+def LowerResProfilePack(ProfilePack, reso, newreso, resomode = np.mean): 
     
     resoratio = newreso // reso
     newlength = resoratio * ((ProfilePack.shape[-1])//resoratio)
     ProfilePack = mode(ProfilePack[:, :, :newlength].reshape(ProfilePack.shape[0], ProfilePack.shape[1], -1, resoratio), axis = -1)
     
-    if dtype is not None: ProfilePack = ProfilePack.astype(dtype)
-    
     return ProfilePack
 
-def Traits2Pack(Markers, cols = None, vectorize = None, dtype = None): 
+def Traits2Pack(Markers, cols = None, vectorize = None): 
     
     x = Markers.iloc[:, 4:] if cols is None else Markers.iloc[:, cols]
     
@@ -784,10 +750,7 @@ def Traits2Pack(Markers, cols = None, vectorize = None, dtype = None):
         names = Markers.columns[vectorize] 
         x = pd.get_dummies(x, prefix = names)
     
-    x = x.to_numpy()
-    if dtype is not None: x = x.astype(dtype)
-    
-    return x
+    return x.to_numpy()
 
 def PackShaper(Pack, expand_dim = None, squeeze = False, twoD = False, flatten = False): 
     
@@ -945,3 +908,87 @@ def ProfilePack2Visual(ProfilePack, combomode = np.mean,
     vismode(cV, bounds = bounds, xlabels = xlabels, labels = labels, suptitle = suptitle, figsize = figsize, fontsize = fontsize, cmap = cmap)
     
     return 
+
+
+
+
+
+
+
+
+
+
+
+''' def KmerFinder(SeqCurrent, kmer, center = None, extend = None): 
+    
+    lkmer = len(kmer)
+    
+    ms = []
+    for z in SeqCurrent: 
+        lz = len(z)
+        m = np.repeat(0, lz-lkmer + 1)
+        for ir, r in enumerate(z[:-lkmer]): 
+            j = z[ir:ir+lkmer]
+            if j == kmer or reverse_complement(j) == kmer: 
+                m[z][ir] = 1
+        if center is not None: m = np.concatenate([np.repeat(center, window // 2), m])
+        if extend is not None: m = np.concatenate([t, np.repeat(extend, lz - len(m))])
+        ms.append(m.reshape(-1,1)) 
+
+    return ms ''' 
+
+'''def Seq2PWMScore(seq, PWM, pieces = None, center = None, extend = None): 
+    # introduce pieces for long seq 
+    
+    ls, lp = len(seq), len(PWM)
+    
+    pieces = 1 if pieces == None else pieces
+    parts = np.linspace(0, ls - lp + 1, pieces + 1, dtype = int)
+    
+    scores = []
+    for i in range(pieces): 
+        sp = seq[parts[i]:parts[i+1] + lp - 1]
+        s = Seqs2OHE(sp)
+        r = np.lib.stride_tricks.sliding_window_view(s, (lp, 4))
+        s1 = np.tensordot(r, PWM, axes=((2,3),(0,1))).reshape(-1)
+        del s,r
+        s_rc = Seqs2OHE(reverse_complement(sp))
+        r_rc = np.lib.stride_tricks.sliding_window_view(s_rc, (lp, 4))
+        s2 = np.tensordot(r_rc, PWM, axes=((2,3),(0,1))).reshape(-1)
+        del s_rc,r_rc
+
+        scores.append(np.max([s1, s2[::-1]], axis = 0))
+    
+    scores = np.concatenate(scores)
+    if center is not None: scores = np.concatenate([np.repeat(center, lp // 2), scores])
+    if center is not None: scores = np.concatenate([scores, np.repeat(extend, ls - len(scores))])
+        
+    return scores.reshape(-1,1)'''
+
+
+
+''' def SigCurrent2Markers(SigCurrent, BS_ids, select_BS_ids = None, reso = 1, top = None, smallest = False): 
+    #makes a sigCurrent out of non zero values. Recommended to make a BinCurrent from CurrentThresholder first or filter out values you dont want
+    
+    if top is not None: 
+        allvals = np.concatenate(SigCurrent, axis = 0).reshape(-1)
+        k = 1 if smallest == True else -1
+        thresh = allvals[np.argsort(allvals)[::k]][top]
+        pdx = [np.where(z > thresh)[0] for z in SigCurrent] if smallest == False else [np.where(z < thresh)[0] for z in SigCurrent]
+   
+    else: pdx = [np.where(z != 0) for z in SigCurrent]
+
+    Markers = []
+    for ip, p in enumerate(pdx): 
+        lp = len(p)
+        vals = (SigCurrent[ip][p]).reshape(-1)
+        subseqs, strand, size = [np.repeat(x, lp) for x in [select_BS_ids[ip], 0, 1]]
+        Markers.append(np.stack([subseqs, p, strand, size, vals], axis = 1))
+    Markers = np.vstack(Markers)
+    d = pd.DataFrame(Markers, columns = ['subseq', 'loc', 'strand', 'size', 'val'])
+    d[['loc', 'strand', 'size']] = d[['loc', 'strand', 'size']].astype(int)
+    d[['val']] = d[['val']].astype(float)
+    
+    d = d.sort_values(by=['subseq', 'loc', 'strand'])
+    
+    return d '''
